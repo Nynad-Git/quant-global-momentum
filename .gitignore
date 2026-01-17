@@ -1,0 +1,10 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Data (never commit raw or processed data)
+data/raw/
+data/processed/
