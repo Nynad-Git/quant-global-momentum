@@ -115,9 +115,47 @@ def main():
 
         test["pred"] = model.predict(X_test)
 
-        w = compute_weights(test[["ticker", "pred", "vol_20", "dollar_vol_20"]])
+        def zscore(s):
+            s = s.astype(float).replace([float("inf"), float("-inf")], float("nan")).dropna()
+            if len(s) == 0:
+                return pd.Series(0.0, index=s.index)
+            std = s.std(ddof=0)
+            if std == 0 or pd.isna(std):
+                return pd.Series(0.0, index=s.index)
+            return (s - s.mean()) / std
+
+        test["z_pred"] = test.groupby("date")["pred"].transform(zscore)
+        test["z_mom"] = test.groupby("date")["mom_12_1"].transform(zscore)
+
+        LAMBDA = 0.2  # ML weight (keep small)
+        test["score"] = (1.0 - LAMBDA) * test["z_mom"] + LAMBDA * test["z_pred"]
+
+        w = compute_weights(test[["ticker", "score", "vol_20", "dollar_vol_20"]].rename(columns={"score": "pred"}))
+
         if w.empty:
             continue
+        if not prev_w.empty:
+            all_idx = prev_w.index.union(w.index)
+            prev_aligned = prev_w.reindex(all_idx).fillna(0.0)
+            new_aligned = w.reindex(all_idx).fillna(0.0)
+
+            SMOOTH = 0.2  # 20% new, 80% old
+            w = (1.0 - SMOOTH) * prev_aligned + SMOOTH * new_aligned
+
+            s = w.sum()
+            if s != 0:
+                w = w / s
+
+            w = w[w.abs() > 1e-6]
+            
+            w = w.replace([float("inf"), float("-inf")], 0.0).fillna(0.0)
+            w[w < 0] = 0.0  # enforce long-only
+
+            s = float(w.sum())
+            if s > 0:
+                w = w / s
+            else:
+                continue
 
         fwd = test.set_index("ticker")[LABEL_COL]
         gross_ret = float((w.reindex(fwd.index).fillna(0.0) * fwd).sum())
