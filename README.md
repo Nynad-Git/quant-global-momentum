@@ -1,123 +1,118 @@
-# Machine Learning–Driven Quantitative Equity Strategy
+# Quantitative Momentum & ML Strategy (US Equities)
 
-This project implements a **systematic, long-only U.S. equity investment strategy** that combines traditional momentum factors with supervised machine learning.
-The goal is to evaluate whether ML-based return forecasts can improve **risk-adjusted performance** over a strong baseline and the S&P 500 (SPY).
-
----
-
-## Project Overview
-
-* **Universe**: Liquid U.S. equities
-* **Frequency**: Monthly rebalancing
-* **Benchmark**: SPY (S&P 500 ETF)
-* **Evaluation**: Rolling out-of-sample backtesting with transaction costs
-
-The project progresses through:
-
-1. A rules-based momentum baseline
-2. An improved baseline with risk-aware portfolio construction (Baseline V2)
-3. A machine learning strategy using Ridge (L2) regression
+This project implements and compares rule-based momentum strategies and a machine-learning-driven (Ridge regression) strategy on US equities, evaluated against the S&P 500 (SPY) benchmark.
 
 ---
 
-## Strategies Implemented
+## Project Structure & Execution Flow
 
-### 1. Baseline Strategy
+### 1. Data Collection
 
-* Cross-sectional momentum ranking
-* Volatility and liquidity filters
-* Equal or naive weighting
+**File to run**
+```bash
+python src/fetch_data.py
+````
 
-Purpose: Establish a strong, interpretable benchmark.
+**What it does**
+
+* Downloads historical OHLCV data for the US equity universe
+* Cleans and aligns time series data
+
+**Outputs**
+
+* `data/raw/us_ohlcv.parquet`
 
 ---
 
-### 2. Baseline V2 (Improved Rules-Based Strategy)
+### 2. Baseline Momentum Strategy (V2)
 
-Enhancements over the baseline:
+**File to run**
 
+```bash
+python src/backtest_baseline_v2.py
+```
+
+**What it does**
+
+* Long-only momentum strategy
+* Volatility and liquidity filtering
 * Inverse-volatility position sizing
-* Turnover control and transaction cost modeling
-* Optional market regime filter (risk-on / risk-off)
+* Monthly rebalancing with transaction cost modeling
 
-**Result**: Significantly improved drawdowns and Sharpe ratio compared to the naive baseline.
+**Outputs**
 
----
-
-### 3. ML Ridge Strategy
-
-A supervised ML approach layered on top of the factor framework.
-
-* **Model**: Ridge Regression (L2-regularized linear model)
-* **Features**: Momentum, volatility, liquidity-related signals
-* **Target**: Forward 21-day returns
-* **Training**: Rolling 60-month window, strictly out-of-sample
-* **Portfolio construction**:
-
-  * Select top-ranked predictions
-  * Inverse-volatility weighting
-  * Liquidity and volatility constraints
-  * Weight smoothing to control turnover
+* `results/baseline_v2_us_equity_curve.csv`
+* Console performance metrics (return, volatility, Sharpe ratio, drawdown, turnover)
 
 ---
 
-## Results Summary
+### 3. S&P 500 Benchmark (SPY)
 
-| Strategy      | Ann. Return | Ann. Vol | Sharpe | Max Drawdown |
-| ------------- | ----------- | -------- | ------ | ------------ |
-| Baseline V2   | ~13–15%     | ~13–16%  | ~1.0   | ~22%         |
-| ML Ridge      | ~19–20%     | ~17%     | ~1.15  | ~18%         |
-| SPY Benchmark | ~13–14%     | ~13%     | ~1.05  | ~21%         |
+**File to run**
 
-> All results include transaction cost assumptions and are evaluated out-of-sample.
-
----
-
-## Key Learnings
-
-* Strong **rules-based baselines** are difficult to beat and should always be established first.
-* Machine learning adds value primarily through **better cross-sectional ranking**, not market timing.
-* Controlling **overfitting, turnover, and leakage** is more important than model complexity.
-* Risk-adjusted metrics (Sharpe, drawdown) matter more than raw returns.
-
----
-
-## Repository Structure
-
-```
-quant-global-momentum/
-├── src/
-│   ├── fetch_data.py
-│   ├── backtest_baseline.py
-│   ├── backtest_baseline_v2.py
-│   ├── ml_ridge_strategy.py
-│   ├── benchmark_spy.py
-│   └── reporting scripts
-├── universes/
-│   └── us_universe.csv
-├── results/
-│   ├── equity curves
-│   ├── performance metrics
-│   └── plots
-├── README.md
-└── CHANGELOG.md
+```bash
+python src/benchmark_spy.py
 ```
 
----
+**What it does**
 
-## Tech Stack
+* Computes buy-and-hold performance of SPY
+* Aligns benchmark returns to strategy rebalance dates
 
-* Python
-* Pandas, NumPy
-* scikit-learn
-* yfinance
-* Matplotlib
+**Outputs**
 
----
-
-## Disclaimer
-
-This project is for **educational and research purposes only**.
-It does not constitute investment advice or a live trading system.
+* `results/spy_benchmark_equity_curve.csv`
+* Console benchmark performance metrics
 
 ---
+
+### 4. Baseline vs SPY Comparison Report
+
+**File to run**
+
+```bash
+python src/report_us_baseline_vs_spy.py
+```
+
+**What it does**
+
+* Compares Baseline V2 strategy against SPY
+* Generates equity and drawdown visualizations
+
+**Outputs**
+
+* `results/equity_curve_baseline_v2_vs_spy.png`
+* `results/drawdown_baseline_v2_vs_spy.png`
+* `results/metrics_baseline_v2_vs_spy.csv`
+
+---
+
+### 5. Machine Learning Strategy (Ridge Regression)
+
+**File to run**
+
+```bash
+python src/ml_ridge_strategy.py
+```
+
+**What it does**
+
+* Rolling out-of-sample Ridge (L2) regression
+* Predicts forward returns using engineered momentum features
+* Risk and liquidity filtering
+* Inverse-volatility weighting and turnover control
+
+**Outputs**
+
+* `results/ml_ridge_us_equity_curve.csv`
+* Console ML strategy performance metrics
+
+---
+
+## Key Results (Summary)
+
+* Baseline V2 achieves risk-adjusted performance comparable to SPY with controlled drawdowns
+* ML Ridge strategy demonstrates improved return potential with higher complexity and model risk
+* Full results are reproducible using the scripts above
+
+```
